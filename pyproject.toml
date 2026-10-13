@@ -1,0 +1,86 @@
+[project]
+name = "governed-agent"
+version = "0.1.0"
+description = "An agent whose output becomes state only after a schema, a policy, a grounding check and, where required, a human."
+readme = "README.md"
+license = { text = "Apache-2.0" }
+authors = [{ name = "Basant Bhattarai" }]
+requires-python = ">=3.12"
+dependencies = ["ga-core", "ga-mcp", "ga-agent", "ga-api"]
+
+[tool.uv]
+package = false
+# Supply-chain guard: never resolve a release younger than three days. Declared
+# here so uv.lock means the same thing on every machine and in CI.
+exclude-newer = "3 days"
+
+[tool.uv.workspace]
+members = ["shared", "mcp", "agent", "api"]
+
+[tool.uv.sources]
+ga-core = { workspace = true }
+ga-mcp = { workspace = true }
+ga-agent = { workspace = true }
+ga-api = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=1.0",
+    "pytest-cov>=6",
+    "ruff>=0.13",
+    "mypy>=1.18",
+    "testcontainers[postgres]>=4.10",
+]
+eval = ["evalproof @ git+https://github.com/technobasant/evalproof@v0.1.1"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+markers = ["integration: needs Docker (PostgreSQL via testcontainers)"]
+filterwarnings = ["ignore::DeprecationWarning:testcontainers.*"]
+
+[tool.coverage.run]
+source = ["shared/ga_core", "mcp/ga_mcp", "agent/ga_agent", "api/ga_api"]
+branch = true
+# SQLAlchemy's asyncio layer runs driver calls in greenlets.
+concurrency = ["thread", "greenlet"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "raise NotImplementedError", "\\.\\.\\."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["web", "evals/cassettes"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "S"]
+ignore = ["S101", "S608", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ga_core", "ga_mcp", "ga_agent", "ga_api", "tests"]
+# The `mcp/` workspace directory is not the `mcp` SDK.
+known-third-party = ["mcp"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "S311"]
+"scripts/**" = ["S311"]
+"mcp/ga_mcp/warehouse.py" = ["S311"]
+"evals/**" = ["S311"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unreachable = true
+mypy_path = ["shared", "mcp", "agent", "api"]
+explicit_package_bases = true
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = ["testcontainers.*", "duckdb.*", "langgraph.*", "evalproof.*"]
+ignore_missing_imports = true
