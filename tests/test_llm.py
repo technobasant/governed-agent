@@ -143,7 +143,7 @@ async def test_anthropic_mapping() -> None:
         ],
         "usage": {"input_tokens": 11, "output_tokens": 5},
     }
-    model = AnthropicModel("claude-test", client=client(reply, seen))
+    model = AnthropicModel("test-model", client=client(reply, seen))
     out = await model.chat(CONVERSATION, TOOLS)
     body = seen[0]["body"]
     assert body["system"] == "be careful"
@@ -165,14 +165,14 @@ async def test_anthropic_structured_output_uses_a_forced_tool() -> None:
         ],
         "usage": {},
     }
-    model = AnthropicModel("claude-test", client=client(reply, seen))
+    model = AnthropicModel("test-model", client=client(reply, seen))
     out = await model.chat(CONVERSATION, TOOLS, schema={"type": "object"})
     assert seen[0]["body"]["tool_choice"] == {"type": "tool", "name": "emit"}
     assert json.loads(out.content) == {"status": "answered"}
 
 
 async def test_anthropic_failure_is_a_model_error() -> None:
-    model = AnthropicModel("claude-test", client=client({}, [], status=401))
+    model = AnthropicModel("test-model", client=client({}, [], status=401))
     with pytest.raises(ModelError):
         await model.chat(CONVERSATION, TOOLS)
 
@@ -209,7 +209,7 @@ def test_model_specs(tmp_path: Path) -> None:
     assert isinstance(model_from_spec("demo"), DemoModel)
     assert model_from_spec("ollama:qwen3:8b").name == "ollama:qwen3:8b"
     assert model_from_spec("openai:gpt-test").name == "openai:gpt-test"
-    assert model_from_spec("anthropic:claude-test").name == "anthropic:claude-test"
+    assert model_from_spec("anthropic:test-model").name == "anthropic:test-model"
     assert model_from_spec(f"replay:{cassette}@ollama:qwen3:8b").name == "ollama:qwen3:8b"
     with pytest.raises(ValueError, match="unknown model spec"):
         model_from_spec("mystery:1")
