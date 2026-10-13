@@ -1,0 +1,112 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  GA_TEST_DATABASE_URL: postgresql+asyncpg://agent:agent@localhost:5432/agent
+  DATABASE_URL: postgresql+asyncpg://agent:agent@localhost:5432/agent
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: {POSTGRES_USER: agent, POSTGRES_PASSWORD: agent, POSTGRES_DB: agent}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent" --health-interval 2s --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"  # the uv that wrote uv.lock; bump both together
+      - run: uv sync --locked --all-groups
+      - run: uv run ruff format --check .
+      - run: uv run ruff check .
+      - run: uv run mypy shared mcp agent api tests evals scripts
+      - run: uv run pytest --cov --cov-report=term-missing --cov-fail-under=85
+
+  # The golden set against the recorded qwen3:8b cassette: no model, same output on
+  # every machine. A prompt or tool change that alters what the model would see is a
+  # cassette miss, and the gate fails until the cassette is re-recorded.
+  eval:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+      - run: uv sync --locked --all-groups
+      - name: the warehouse and the answer keys rebuild identically
+        run: |
+          uv run python -m ga_mcp.warehouse --path data/warehouse.duckdb
+          uv run python evals/build_golden.py
+          git diff --exit-code evals/golden.jsonl
+      - name: replay the golden set
+        run: >
+          uv run evalproof run evals/suite.yaml --out /tmp/candidate.json --quiet
+          --markdown "$GITHUB_STEP_SUMMARY"
+      - name: gate against the baseline
+        run: >
+          uv run evalproof compare evals/runs/baseline.json /tmp/candidate.json
+          --suite evals/suite.yaml --gate --markdown "$GITHUB_STEP_SUMMARY"
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [web]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: {POSTGRES_USER: agent, POSTGRES_PASSWORD: agent, POSTGRES_DB: agent}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U agent" --health-interval 2s --health-timeout 3s
+          --health-retries 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.12.23"
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: uv sync --locked
+      - run: uv run python -m ga_mcp.warehouse --path data/warehouse.duckdb
+      - working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+          npx playwright test
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: web/playwright-report
