@@ -1,0 +1,14 @@
+.git
+.venv
+**/__pycache__
+**/.mypy_cache
+**/.pytest_cache
+**/.ruff_cache
+.evalproof
+data
+web/node_modules
+web/.next
+web/playwright-report
+web/test-results
+evals/runs
+evals/cassettes
