@@ -1,0 +1,25 @@
+[project]
+name = "ga-mcp"
+version = "0.1.0"
+description = "MCP server over a read-only, guarded DuckDB warehouse."
+license = { text = "Apache-2.0" }
+authors = [{ name = "Basant Bhattarai" }]
+requires-python = ">=3.12"
+dependencies = [
+    "ga-core",
+    "mcp>=1.20",
+    "duckdb>=1.3",
+    "sqlglot>=26",
+    "uvicorn>=0.34",
+    "opentelemetry-instrumentation-asgi>=0.50b0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ga_mcp"]
+
+[tool.uv.sources]
+ga-core = { workspace = true }
