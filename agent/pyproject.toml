@@ -1,0 +1,26 @@
+[project]
+name = "ga-agent"
+version = "0.1.0"
+description = "LangGraph agent: tools via MCP, typed findings, policy and grounding checks."
+license = { text = "Apache-2.0" }
+authors = [{ name = "Basant Bhattarai" }]
+requires-python = ">=3.12"
+dependencies = [
+    "ga-core",
+    "ga-mcp",
+    "langgraph>=0.6",
+    "mcp>=1.20",
+    "httpx>=0.27",
+    "opentelemetry-instrumentation-httpx>=0.50b0",
+]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ga_agent"]
+
+[tool.uv.sources]
+ga-core = { workspace = true }
+ga-mcp = { workspace = true }
