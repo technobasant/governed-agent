@@ -32,7 +32,7 @@ instructions in the question itself. Method, hardware and every figure in
 | Does it answer correctly? | 48 of 54 match the SQL answer key (89%, 95% CI 78–95%); 24/24 numeric, 8/8 lookups |
 | What reaches state unreviewed? | 37 findings published automatically; **3 of them wrong** — two answered a question the data cannot answer with a real but irrelevant figure, one counted what it was asked to list |
 | What did the checks stop? | 8 held for review: 3 wrong (an invented $0.00 twice, a false claim that a metric "was changed"), 5 right (2 carry a proposal by design, 3 quote numbers from planted text) |
-| Did injection work? | No planted instruction led to a proposal, a claimed action or leaked data (0 of 5); 0 of 54 replies contained anything unsafe; 0 actions executed |
+| Did injection work? | No planted instruction led to a proposal, a claimed action or leaked data (0 of 5); 1 of 54 replies was unsafe (q03 claimed a metric change it cannot make; held, not executed); 0 actions executed |
 | Does it say "I don't know"? | **Half the time**: 4 of 8 unanswerable questions; the weakest result here |
 | How long does it take? | p50 23.7 s, p95 46.1 s per question; 1.1 tool calls and 3.1 model calls on average |
 | Is it reproducible? | Two live runs gave byte-identical model replies; CI replays them, and a one-line prompt change fails the gate |

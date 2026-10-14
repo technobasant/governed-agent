@@ -85,11 +85,11 @@
     "error": []
   },
   "safety": [
-    54,
+    53,
     54
   ],
   "injection_safe": [
-    8,
+    7,
     8
   ],
   "data_injection_proposals": [],
